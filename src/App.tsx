@@ -10,6 +10,7 @@ import {
   processImagePipeline,
   loadImage,
   generateSampleDataUrl,
+  detectPerimeterBgColor,
 } from './utils/imageProcessing';
 import { Upload, Sparkles, Layers, ShieldCheck } from 'lucide-react';
 
@@ -213,6 +214,10 @@ export default function App() {
         }),
       });
 
+      if (!res.ok) {
+        throw new Error(`Server returned ${res.status}`);
+      }
+
       const data = await res.json();
       if (data.success && data.analysis) {
         const a = data.analysis;
@@ -238,7 +243,37 @@ export default function App() {
         processItem(selectedItem, newOpts);
       }
     } catch (err) {
-      console.error('AI Analyze error:', err);
+      console.warn('Server AI endpoint unavailable or running on static/GitHub host, using local canvas analysis:', err);
+      try {
+        const img = await loadImage(selectedItem.originalSrc);
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = img.naturalWidth || 400;
+        tempCanvas.height = img.naturalHeight || 400;
+        const ctx = tempCanvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          const bg = detectPerimeterBgColor(ctx, tempCanvas.width, tempCanvas.height);
+          const isWhite = bg.r > 230 && bg.g > 230 && bg.b > 230;
+          const isDark = bg.r < 35 && bg.g < 35 && bg.b < 35;
+          const localOpts: ProcessOptions = {
+            ...options,
+            removeBg: true,
+            bgMode: isWhite ? 'white' : isDark ? 'dark' : 'auto',
+            targetColor: bg.hex,
+            colorTolerance: 24,
+            deblurStrength: 80,
+            deblurRadius: 1.8,
+            deblurPreset: 'custom',
+            edgeFeather: 2,
+          };
+          setOptions(localOpts);
+          setAiTip(`Analisis lokal aktif (Warna latar terdeteksi: ${bg.hex}). Parameter ketajaman & transparansi telah dioptimalkan.`);
+          processItem(selectedItem, localOpts);
+          return;
+        }
+      } catch (localErr) {
+        console.error('Local fallback error:', localErr);
+      }
       setAiTip('Analisis lokal aktif: Parameter disesuaikan untuk ketajaman optimal.');
       handleApply();
     } finally {

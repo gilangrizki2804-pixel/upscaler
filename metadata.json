@@ -2,5 +2,7 @@
   "name": "ClariPNG - AI PNG Upscaler & Deblur Transparent",
   "description": "Aplikasi upscaler gambar PNG mutakhir untuk menghilangkan blur, menajamkan detail, dan menghapus latar belakang menjadi transparan.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
